@@ -1,0 +1,67 @@
+<!-- Created using vQmod XML Generator by UKSB - http://www.opencart-extensions.co.uk //-->
+<modification>
+       <id><![CDATA[PayPalMod]]></id>
+	<version><![CDATA[1.0.0]]></version>
+	<vqmver><![CDATA[1.0.0]]></vqmver>
+	<author><![CDATA[gareth@lucidloigc.co.za]]></author>
+        <file name="catalog/controller/payment/pp_standard.php">
+               <operation>
+			<search position="before"><![CDATA[case 'Completed':]]></search>
+			<add><![CDATA[
+                                   case 'Completed':
+                                                if($order_info['currency_code'] == "ZAR")
+                                                {
+                                                  $convert = $this->db->query("SELECT value FROM ".DB_PREFIX."currency where code= 'USD'");
+                                                  $this->request->post['mc_gross'] = $this->currency->format($this->request->post['mc_gross']/$convert->row['value'], $order_info['currency_code'], $order_info['currency_value'], false);
+                                                 }
+                            
+						if ((strtolower($this->request->post['receiver_email']) <> strtolower($this->config->get('pp_standard_email'))) ) {
+							$this->log->write('PP_STANDARD :: RECEIVER EMAIL MISMATCH! ' . strtolower($this->request->post['receiver_email']));
+							
+						} else if(((float)$this->request->post['mc_gross'] <> $this->currency->format($order_info['total'], $order_info['currency_code'], $order_info['currency_value'], false))){
+							$this->log->write('PP_STANDARD :: mc_gross MISSMATCH! orderid='.$order_info['total'].$order_info['currency_code'].$order_info['currency_value'].' '. $this->currency->format($order_info['total'], $order_info['currency_code'], $order_info['currency_value'], false)." <> ".(float)$this->request->post['mc_gross'] );
+						}else{
+                                                    $order_status_id = $this->config->get('pp_standard_completed_status_id');
+                                                }
+                                    break;
+                        ]]>
+                        </add>
+		</operation>
+                 <operation>
+			<search position="after"><![CDATA[foreach ($this->cart->getProducts() as $product) {]]></search>
+			<add><![CDATA[
+                         //Paypal ZAR ammendment
+                        if($order_info['currency_code'] == "ZAR")
+                        {
+                                 $convert = $this->db->query("SELECT value FROM ".DB_PREFIX."currency where code= 'USD'");
+                                 $product['price'] = $product['price']*$convert->row['value'];
+                                                    
+                        }
+                        ]]>
+                        </add>
+		</operation>
+                 <operation>
+			<search position="after"><![CDATA[$total = $this->currency->format($order_info['total'] - $this->cart->getSubTotal(), $order_info['currency_code'], false, false);]]></search>
+			<add><![CDATA[
+                          //Paypal ZAR ammendment
+                         if($order_info['currency_code'] == "ZAR")
+                        {
+                                 $total = $this->currency->format(($order_info['total'] - $this->cart->getSubTotal())*$convert->row['value'], $order_info['currency_code'], false, false);
+                            
+                                                    
+                        }
+                        ]]>
+                        </add>
+		</operation>
+                
+        </file>
+        <file name="catalog/model/payment/pp_standard.php">
+               <operation>
+			<search position="before"><![CDATA['TRY']]></search>
+			<add><![CDATA['ZAR',]]>
+                        </add>
+		</operation>
+                
+        </file>
+       
+</modification>
